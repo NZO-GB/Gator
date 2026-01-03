@@ -3,26 +3,33 @@ package internal
 import (
 	"encoding/json"
 	"os"
+	"fmt"
 )
 
 const configFileName = ".gatorconfig.json"
-const path := os.UserHomeDir() + configFileName
 
-type Config struct{
-	DbUrl: string `json:"db_url"`
-	CurrentUserName: string `json:"CurrentUserName"`
+type Config struct {
+	DbUrl			string `json:"db_url"`
+	CurrentUserName	string `json:"CurrentUserName"`
 }
 
 func Read() (Config, error) {
 
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return Config{}, err
+	}
+
+	path := homedir + "/" + configFileName
+
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return Config{}, err
 	}
 
 	var cfg Config
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, err
+		return Config{}, err
 	}
 
 	return cfg, nil
@@ -30,16 +37,26 @@ func Read() (Config, error) {
 
 func write(cfg Config) error {
 
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	path := homedir + "/" + configFileName
+
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(path, data)
+	return os.WriteFile(path, data, 0644)
 }
 
 func (c Config) SetUser(username string) {
-	cfg := Read()
+	cfg, err := Read()
+	if err != nil {
+		fmt.Println(err)
+	}
 	cfg.CurrentUserName = username
 	write(cfg)
 }

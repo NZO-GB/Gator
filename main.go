@@ -2,11 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/NZO-GB/gator/internal/config"
+	config "github.com/NZO-GB/Gator/internal/config"
 )
 
-main() {
-	cfg := Read()
+func main() {
+	cfg, err := config.Read()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	cfg.SetUser("NZO")
 	fmt.Println(cfg)
 }
