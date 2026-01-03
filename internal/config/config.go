@@ -3,7 +3,6 @@ package internal
 import (
 	"encoding/json"
 	"os"
-	"fmt"
 )
 
 const configFileName = ".gatorconfig.json"
@@ -52,11 +51,15 @@ func write(cfg Config) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-func (c Config) SetUser(username string) {
+func (c Config) SetUser(username string) error{
 	cfg, err := Read()
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 	cfg.CurrentUserName = username
-	write(cfg)
+	err = write(cfg)
+	if err != nil {
+		return err
+	}
+	return nil
 }
