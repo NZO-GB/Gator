@@ -10,6 +10,7 @@ const configFileName = ".gatorconfig.json"
 type Config struct {
 	DbUrl			string `json:"db_url"`
 	CurrentUserName	string `json:"CurrentUserName"`
+	Protocol		string `json:"protocol"`
 }
 
 func Read() (Config, error) {
@@ -51,12 +52,25 @@ func write(cfg Config) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-func (c Config) SetUser(username string) error{
+func (c Config) SetUser(username string) error {
 	cfg, err := Read()
 	if err != nil {
 		return err
 	}
 	cfg.CurrentUserName = username
+	err = write(cfg)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c Config) AddProtocol(connectionString string) error {
+	cfg, err := Read()
+	if err != nil {
+		return err
+	}
+	cfg.Protocol = connectionString
 	err = write(cfg)
 	if err != nil {
 		return err
