@@ -1,12 +1,15 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
-
-	config "github.com/NZO-GB/Gator/internal/config"
+	"database/sql"
+	database "github.com/NZO-GB/Gator/internal/database"
+	_		"github.com/lib/pq"
+	config	"github.com/NZO-GB/Gator/internal/config"
 )
+
+const dbURL = "postgres://postgres:postgres@localhost:5432/gator"
 
 func main() {
 	var stateInstance state
@@ -14,25 +17,30 @@ func main() {
 	cfg, err := config.Read()
 	if err != nil {
 		log.Fatalf("error reading config: %s", err)
-		return
 	}
 
 	stateInstance.cfg = &cfg
 
+	db, err := sql.Open("postgres", dbURL)
+
+	dbQueries := database.New(db)
+
+	stateInstance.db = dbQueries
+
+
 	if len(os.Args) < 2 {
 		log.Fatal("Error: not enough commands")
-		return
 	}
 
-	commandsInstance := commands {
+	cmds := commands {
 		list: make(map[string]func(*state, command) error),
 	}
 
-	if err = commandsInstance.register("login", handlerLogin); err != nil {
+	if err = cmds.register("login", handlerLogin); err != nil {
 		log.Fatal("Register error: ", err)
 	}
 
-	if err = commandsInstance.register("protocol", addConnectionString); err != nil {
+	if err = cmds.register("protocol", addConnectionString); err != nil {
 		log.Fatal("Register error: ", err)
 	}
 
@@ -44,10 +52,7 @@ func main() {
 		arguments: argumentsString,
 	}
 
-	fmt.Println(commandFull)
-
-	err = commandsInstance.run(&stateInstance, commandFull)
-
+	err = cmds.run(&stateInstance, commandFull)
 	if err != nil {
 		log.Fatal("Error: ", err)
 	}

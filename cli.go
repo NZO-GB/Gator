@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"errors"
+	database "github.com/NZO-GB/Gator/internal/database"
 	config "github.com/NZO-GB/Gator/internal/config"
 )
 
@@ -10,6 +11,7 @@ type Config = config.Config
 
 type state struct {
 	cfg			*Config
+	db			*database.Queries
 }
 
 type command struct {
