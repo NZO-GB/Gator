@@ -27,7 +27,6 @@ func main() {
 
 	stateInstance.db = dbQueries
 
-
 	if len(os.Args) < 2 {
 		log.Fatal("Error: not enough commands")
 	}

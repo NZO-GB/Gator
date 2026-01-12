@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"errors"
+	"context"
+	"time"
+	uuid "github.com/google/uuid"
 	database "github.com/NZO-GB/Gator/internal/database"
 	config "github.com/NZO-GB/Gator/internal/config"
 )
@@ -12,6 +15,20 @@ type Config = config.Config
 type state struct {
 	cfg			*Config
 	db			*database.Queries
+}
+
+func (s state) createUserParams(name string) database.CreateUserParams {
+	userID := uuid.New()
+	now := time.Now()
+
+	user := database.CreateUserParams{
+		ID:			userID,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+		Name:		name,
+	}
+
+	return user
 }
 
 type command struct {
@@ -51,6 +68,33 @@ func addConnectionString(s *state, cmd command) error {
 	}
 
 	fmt.Println("Connection string has been set")
+
+	return nil
+}
+
+func handlerRegister(s *state, cmd command) error {
+	if len(cmd.arguments) == 0 {
+		return errors.New("Username is required")
+	}
+
+	if len(cmd.arguments) > 1 {
+		return errors.New("Too many arguments, only username should be provided")
+	}
+
+	userParams := s.createUserParams(cmd.arguments[0])
+
+	user, err := s.db.CreateUser(context.Background(), userParams)
+
+	if err != nil {
+		return err
+	}
+
+	s.cfg.SetUser(cmd.arguments[0])
+	
+	fmt.Println("User has been created")
+	fmt.Println(user)
+
+	
 
 	return nil
 }
