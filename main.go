@@ -39,7 +39,11 @@ func main() {
 		log.Fatal("Register error: ", err)
 	}
 
-	if err = cmds.register("protocol", addConnectionString); err != nil {
+	if err = cmds.register("register", handlerRegister); err != nil {
+		log.Fatal("Register error: ", err)
+	}
+
+	if err = cmds.register("reset", handlerReset); err != nil {
 		log.Fatal("Register error: ", err)
 	}
 
