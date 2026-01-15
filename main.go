@@ -11,41 +11,52 @@ import (
 
 const dbURL = "postgres://postgres:postgres@localhost:5432/gator"
 
-func main() {
-	var stateInstance state
-
+func newState() (*state, error) {
 	cfg, err := config.Read()
 	if err != nil {
-		log.Fatalf("error reading config: %s", err)
+		return nil, err
 	}
 
-	stateInstance.cfg = &cfg
-
 	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		return nil, err
+	}
 
-	dbQueries := database.New(db)
+	return &state{
+		cfg:	&cfg,
+		db:		database.New(db),
+	}, nil
+}
 
-	stateInstance.db = dbQueries
+func registerCommands() commands {
+	cmds := commands {
+		list: make(map[string]func(*state, command) error),
+	}
+
+	must(cmds.register("login", handlerLogin))
+	must(cmds.register("register", handlerRegister))
+	must(cmds.register("reset", handlerReset))
+
+	return cmds
+}
+
+func must(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func main() {
+	stateInstance, err := newState()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if len(os.Args) < 2 {
 		log.Fatal("Error: not enough commands")
 	}
 
-	cmds := commands {
-		list: make(map[string]func(*state, command) error),
-	}
-
-	if err = cmds.register("login", handlerLogin); err != nil {
-		log.Fatal("Register error: ", err)
-	}
-
-	if err = cmds.register("register", handlerRegister); err != nil {
-		log.Fatal("Register error: ", err)
-	}
-
-	if err = cmds.register("reset", handlerReset); err != nil {
-		log.Fatal("Register error: ", err)
-	}
+	cmds := registerCommands()
 
 	nameString := os.Args[1]
 	argumentsString := os.Args[2:]
@@ -55,7 +66,7 @@ func main() {
 		arguments: argumentsString,
 	}
 
-	err = cmds.run(&stateInstance, commandFull)
+	err = cmds.run(stateInstance, commandFull)
 	if err != nil {
 		log.Fatal("Error: ", err)
 	}
