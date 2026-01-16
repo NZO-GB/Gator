@@ -15,10 +15,11 @@ SELECT *
 FROM users
 WHERE name = $1;
 
--- name: reset :exec
+-- name: Reset :exec
+
 DELETE FROM users;
 
 -- name: GetUsers :many
 
 SELECT *
-FROM users
+FROM users;

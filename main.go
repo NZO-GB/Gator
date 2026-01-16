@@ -36,6 +36,7 @@ func registerCommands() commands {
 	must(cmds.register("login", handlerLogin))
 	must(cmds.register("register", handlerRegister))
 	must(cmds.register("reset", handlerReset))
+	must(cmds.register("users", handlerGetUsers))
 
 	return cmds
 }
