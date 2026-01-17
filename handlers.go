@@ -4,6 +4,7 @@ import(
 	"errors"
 	"fmt"
 	"context"
+	"html"
 )
 
 func handlerLogin(s *state, cmd command) error {
@@ -77,6 +78,40 @@ func handlerGetUsers(s *state, cmd command) error {
 		}
 		fmt.Println(printName)
 	}
+
+	return nil
+}
+
+func handlerFeed(s *state, cmd command) error {
+	pointer, err := fetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	
+	if err != nil {
+		return err
+	}
+
+	for i := range(pointer.Channel.Item) {
+		pointer.Channel.Item[i].Title = html.UnescapeString(pointer.Channel.Item[i].Title)
+		pointer.Channel.Item[i].Description = html.UnescapeString(pointer.Channel.Item[i].Description)
+	}
+
+	fmt.Println(pointer)
+	
+	return nil
+}
+
+func handlerAddFeed(s *state, cmd command) error {
+	if len(cmd.arguments) < 2 {
+		return errors.New("Name and URL are required")
+	}
+
+	feedParams := s.createFeedParams(cmd.arguments[0], cmd.arguments[1])
+
+	feed, err := s.db.CreateFeed(context.Background(), feedParams)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(feed)
 
 	return nil
 }
