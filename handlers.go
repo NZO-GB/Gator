@@ -115,3 +115,23 @@ func handlerAddFeed(s *state, cmd command) error {
 
 	return nil
 }
+
+func handlerFeeds(s *state, cmd command) error {
+	feeds, err := s.db.GetFeeds(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for _, v := range feeds {
+		userID := v.UserID
+		username, err := s.db.GetUserByID(context.Background(), userID)
+		if err != nil {
+			return err
+		}
+		fmt.Println(v.Name)
+		fmt.Println(v.Url)
+		fmt.Println(username)
+	}
+
+	return nil
+}

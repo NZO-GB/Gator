@@ -39,6 +39,7 @@ func registerCommands() commands {
 	must(cmds.register("users", handlerGetUsers))
 	must(cmds.register("agg", handlerFeed))
 	must(cmds.register("addfeed", handlerAddFeed))
+	must(cmds.register("feeds", handlerFeeds))
 
 	return cmds
 }
