@@ -42,7 +42,7 @@ func (s state) createFeedParams(name string, url string) database.CreateFeedPara
 	userID := user.ID
 	now := time.Now()
 
-	feed := database.CreateFeedParams{
+	feed := database.CreateFeedParams {
 		ID:			userID,
 		CreatedAt:  now,
 		UpdatedAt:  now,
@@ -52,6 +52,36 @@ func (s state) createFeedParams(name string, url string) database.CreateFeedPara
 	}
 
 	return feed
+}
+
+func (s state) CreateFeedFollowParams(url string) database.CreateFeedFollowParams {
+	username := s.cfg.CurrentUserName
+	user, err := s.db.GetUser(context.Background(), username)
+	if err != nil {
+		return database.CreateFeedFollowParams{}
+	}
+
+	userID := user.ID
+
+	feed, err := s.db.GetFeedByURL(context.Background(), url)
+	if err != nil {
+		return database.CreateFeedFollowParams{}
+	}
+	
+	feedID := feed.ID
+
+	now := time.Now()
+	id := uuid.New()
+
+	feedfollow := database.CreateFeedFollowParams {
+		ID:			id,
+		UserID:		userID,
+		FeedID: 	feedID,
+		CreatedAt: 	now,
+		UpdatedAt: 	now,
+	}
+
+	return feedfollow
 }
 
 type command struct {

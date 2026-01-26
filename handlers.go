@@ -1,9 +1,9 @@
 package main
 
-import(
+import (
+	"context"
 	"errors"
 	"fmt"
-	"context"
 	"html"
 )
 
@@ -122,16 +122,31 @@ func handlerFeeds(s *state, cmd command) error {
 		return err
 	}
 
-	for _, v := range feeds {
-		userID := v.UserID
+	for _, f := range feeds {
+		userID := f.UserID
 		username, err := s.db.GetUserByID(context.Background(), userID)
 		if err != nil {
 			return err
 		}
-		fmt.Println(v.Name)
-		fmt.Println(v.Url)
+		fmt.Println(f.Name)
+		fmt.Println(f.Url)
 		fmt.Println(username)
 	}
 
 	return nil
 }
+
+func handlerFollow(s *state, cmd command) error {
+
+	feedFollowParams := s.CreateFeedFollowParams(cmd.arguments[0])
+	feedFollow, err := s.db.CreateFeedFollow(context.Background(), feedFollowParams)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(feedFollow.FeedName)
+	fmt.Println(feedFollow.UserName)
+
+	return nil
+}
+
