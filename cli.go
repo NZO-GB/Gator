@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"io"
+	"fmt"
 	"encoding/xml"
 	uuid "github.com/google/uuid"
 	database "github.com/NZO-GB/Gator/internal/database"
@@ -33,11 +34,11 @@ func (s state) createUserParams(name string) database.CreateUserParams {
 	return user
 }
 
-func (s state) createFeedParams(name string, url string) database.CreateFeedParams {
+func (s state) createFeedParams(name string, url string) (database.CreateFeedParams, error) {
 	username := s.cfg.CurrentUserName
 	user, err := s.db.GetUser(context.Background(), username)
 	if err != nil {
-		return database.CreateFeedParams{}
+		return database.CreateFeedParams{}, err
 	}
 	userID := user.ID
 	now := time.Now()
@@ -51,21 +52,22 @@ func (s state) createFeedParams(name string, url string) database.CreateFeedPara
 		UserID:		userID,
 	}
 
-	return feed
+	return feed, nil
 }
 
-func (s state) CreateFeedFollowParams(url string) database.CreateFeedFollowParams {
+func (s state) CreateFeedFollowParams(url string) (database.CreateFeedFollowParams, error) {
 	username := s.cfg.CurrentUserName
 	user, err := s.db.GetUser(context.Background(), username)
 	if err != nil {
-		return database.CreateFeedFollowParams{}
+		return database.CreateFeedFollowParams{}, err
 	}
 
 	userID := user.ID
+	fmt.Printf("USER IS: %s", user.Name)
 
 	feed, err := s.db.GetFeedByURL(context.Background(), url)
 	if err != nil {
-		return database.CreateFeedFollowParams{}
+		return database.CreateFeedFollowParams{}, err
 	}
 	
 	feedID := feed.ID
@@ -81,7 +83,7 @@ func (s state) CreateFeedFollowParams(url string) database.CreateFeedFollowParam
 		UpdatedAt: 	now,
 	}
 
-	return feedfollow
+	return feedfollow, nil
 }
 
 type command struct {

@@ -49,7 +49,9 @@ func handlerRegister(s *state, cmd command) error {
 		return err
 	}
 
-	s.cfg.SetUser(username)
+	if err = s.cfg.SetUser(username); err != nil {
+		return err
+	}
 	
 	fmt.Println("User has been created:")
 	fmt.Println(user.Name)
@@ -104,10 +106,21 @@ func handlerAddFeed(s *state, cmd command) error {
 		return errors.New("Name and URL are required")
 	}
 
-	feedParams := s.createFeedParams(cmd.arguments[0], cmd.arguments[1])
+	feedParams, err := s.createFeedParams(cmd.arguments[0], cmd.arguments[1])
+	if err != nil {
+		return err
+	}
 
 	feed, err := s.db.CreateFeed(context.Background(), feedParams)
 	if err != nil {
+		return err
+	}
+
+	cmdFeedFollow := command {
+		arguments: []string{feedParams.Url},
+	}
+
+	if err := handlerFollow(s, cmdFeedFollow); err != nil {
 		return err
 	}
 
@@ -138,7 +151,11 @@ func handlerFeeds(s *state, cmd command) error {
 
 func handlerFollow(s *state, cmd command) error {
 
-	feedFollowParams := s.CreateFeedFollowParams(cmd.arguments[0])
+	feedFollowParams, err := s.CreateFeedFollowParams(cmd.arguments[0])
+	if err != nil {
+		return err
+	}
+
 	feedFollow, err := s.db.CreateFeedFollow(context.Background(), feedFollowParams)
 	if err != nil {
 		return err
@@ -147,6 +164,20 @@ func handlerFollow(s *state, cmd command) error {
 	fmt.Println(feedFollow.FeedName)
 	fmt.Println(feedFollow.UserName)
 
+	return nil
+}
+
+func handlerFollowing(s *state, cmd command) error {
+	username := s.cfg.CurrentUserName
+	user, err := s.db.GetUser(context.Background(), username)
+	if err != nil {
+		return err
+	}
+	feedfollows, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
+	if err != nil {
+		return err
+	}
+	fmt.Println(feedfollows)
 	return nil
 }
 
