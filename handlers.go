@@ -5,7 +5,20 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	database "github.com/NZO-GB/Gator/internal/database"
 )
+
+func middlewareLoggedIn(
+	handler func(s *state, cmd command, user database.User) error) func(*state, command) error {
+		return func(s *state, cmd command) error {
+			username := s.cfg.CurrentUserName
+			user, err := s.db.GetUser(context.Background(), username)
+			if err != nil {
+				return err
+			}
+			return handler(s, cmd, user)
+		}
+	}
 
 func handlerLogin(s *state, cmd command) error {
 	if len(cmd.arguments) == 0 {
@@ -26,7 +39,7 @@ func handlerLogin(s *state, cmd command) error {
 		return err
 	}
 	
-	fmt.Println("User has been set")
+	fmt.Printf("User has been set: %s\n", username)
 
 	return nil
 }
@@ -53,8 +66,7 @@ func handlerRegister(s *state, cmd command) error {
 		return err
 	}
 	
-	fmt.Println("User has been created:")
-	fmt.Println(user.Name)
+	fmt.Printf("User has been created: %s \n", user.Name)
 
 	return nil
 }
@@ -63,6 +75,7 @@ func handlerReset(s *state, cmd command) error {
 	if err := s.db.Reset(context.Background()); err != nil {
 		return err
 	}
+	fmt.Println("Database reset succesful")
 	return nil
 }
 
@@ -78,7 +91,7 @@ func handlerGetUsers(s *state, cmd command) error {
 		if u.Name == s.cfg.CurrentUserName {
 			printName += " (current)"
 		}
-		fmt.Println(printName)
+		fmt.Printf("Got user: %s \n", printName)
 	}
 
 	return nil
@@ -101,30 +114,36 @@ func handlerFeed(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.arguments) < 2 {
 		return errors.New("Name and URL are required")
 	}
 
-	feedParams, err := s.createFeedParams(cmd.arguments[0], cmd.arguments[1])
+	feedname := cmd.arguments[0]
+	url := cmd.arguments[1]
+
+	feedParams, err := s.createFeedParams(user, feedname, url)
 	if err != nil {
+		fmt.Println("Error creating params")
 		return err
 	}
 
 	feed, err := s.db.CreateFeed(context.Background(), feedParams)
 	if err != nil {
+		fmt.Println("Error creating feed")
 		return err
 	}
+
+	fmt.Printf("Added feed: '%s' \n", feed.Name)
 
 	cmdFeedFollow := command {
-		arguments: []string{feedParams.Url},
+		arguments: []string{feed.Url},
 	}
 
-	if err := handlerFollow(s, cmdFeedFollow); err != nil {
+	if err := handlerFollow(s, cmdFeedFollow, user); err != nil {
+		fmt.Println("Error following")
 		return err
 	}
-
-	fmt.Println(feed)
 
 	return nil
 }
@@ -135,49 +154,77 @@ func handlerFeeds(s *state, cmd command) error {
 		return err
 	}
 
-	for _, f := range feeds {
+	for _, f := range feeds { // XXXXX Do we need to print User???? Can we even do that?
 		userID := f.UserID
 		username, err := s.db.GetUserByID(context.Background(), userID)
 		if err != nil {
 			return err
 		}
-		fmt.Println(f.Name)
-		fmt.Println(f.Url)
-		fmt.Println(username)
+		fmt.Printf("Feed: %s \n", f.Name)
+		fmt.Printf("URL: %s \n ", f.Url)
+		fmt.Printf("User: %s \n", username)
 	}
 
 	return nil
 }
 
-func handlerFollow(s *state, cmd command) error {
+func handlerFollow(s *state, cmd command, user database.User) error {
 
-	feedFollowParams, err := s.CreateFeedFollowParams(cmd.arguments[0])
+	url := cmd.arguments[0]
+
+	feedFollowParams, err := s.CreateFeedFollowParams(user, url)
 	if err != nil {
+		fmt.Println("Error creating params")
 		return err
 	}
 
 	feedFollow, err := s.db.CreateFeedFollow(context.Background(), feedFollowParams)
 	if err != nil {
+		fmt.Println("Error creating follow")
 		return err
 	}
 
-	fmt.Println(feedFollow.FeedName)
-	fmt.Println(feedFollow.UserName)
+	fmt.Printf("Added feed: '%s' to User: '%s' \n", feedFollow.FeedName, feedFollow.UserName)
 
 	return nil
 }
 
-func handlerFollowing(s *state, cmd command) error {
-	username := s.cfg.CurrentUserName
-	user, err := s.db.GetUser(context.Background(), username)
-	if err != nil {
-		return err
-	}
+func handlerFollowing(s *state, cmd command, user database.User) error {
+
 	feedfollows, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
 	if err != nil {
 		return err
 	}
-	fmt.Println(feedfollows)
+
+	fmt.Printf("---\nPrinting feeds for '%s': \n", user.Name)
+
+	for _, feed := range(feedfollows) {
+		fmt.Printf("Feed: %s\n", feed.FeedName)
+	}
+
+	fmt.Println("---")
+
 	return nil
 }
 
+func handlerUnfollow(s *state, cmd command, user database.User) error {
+
+	url := cmd.arguments[0]
+
+	removeFeedFollowParams, err := s.CreateRemoveFeedFollowParams(user, url)
+	if err != nil {
+		fmt.Println("Error creating params")
+		return err
+	}
+
+	err = s.db.RemoveFeedFollow(context.Background(), removeFeedFollowParams)
+	if err != nil {
+		fmt.Println("Error unfollowing")
+		return err
+	}
+
+	fmt.Printf("Feed: '%s' has been deleted for User: '%s'\n", url, user.Name)
+
+	return nil
+
+}

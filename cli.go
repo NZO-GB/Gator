@@ -6,7 +6,6 @@ import (
 	"context"
 	"net/http"
 	"io"
-	"fmt"
 	"encoding/xml"
 	uuid "github.com/google/uuid"
 	database "github.com/NZO-GB/Gator/internal/database"
@@ -34,56 +33,51 @@ func (s state) createUserParams(name string) database.CreateUserParams {
 	return user
 }
 
-func (s state) createFeedParams(name string, url string) (database.CreateFeedParams, error) {
-	username := s.cfg.CurrentUserName
-	user, err := s.db.GetUser(context.Background(), username)
-	if err != nil {
-		return database.CreateFeedParams{}, err
-	}
-	userID := user.ID
-	now := time.Now()
+func (s state) createFeedParams(user database.User, feedname string, url string) (database.CreateFeedParams, error) {
 
-	feed := database.CreateFeedParams {
-		ID:			userID,
-		CreatedAt:  now,
-		UpdatedAt:  now,
-		Name:		name,
+	feedParams := database.CreateFeedParams {
+		ID:			uuid.New(),
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+		Name:		feedname,
 		Url: 		url,
-		UserID:		userID,
+		UserID:		user.ID,
 	}
 
-	return feed, nil
+	return feedParams, nil
 }
 
-func (s state) CreateFeedFollowParams(url string) (database.CreateFeedFollowParams, error) {
-	username := s.cfg.CurrentUserName
-	user, err := s.db.GetUser(context.Background(), username)
-	if err != nil {
-		return database.CreateFeedFollowParams{}, err
-	}
-
-	userID := user.ID
-	fmt.Printf("USER IS: %s", user.Name)
+func (s state) CreateFeedFollowParams(user database.User, url string) (database.CreateFeedFollowParams, error) {
 
 	feed, err := s.db.GetFeedByURL(context.Background(), url)
 	if err != nil {
 		return database.CreateFeedFollowParams{}, err
 	}
-	
-	feedID := feed.ID
 
-	now := time.Now()
-	id := uuid.New()
-
-	feedfollow := database.CreateFeedFollowParams {
-		ID:			id,
-		UserID:		userID,
-		FeedID: 	feedID,
-		CreatedAt: 	now,
-		UpdatedAt: 	now,
+	feedFollow := database.CreateFeedFollowParams {
+		ID:			uuid.New(),
+		UserID:		user.ID,
+		FeedID: 	feed.ID,
+		CreatedAt: 	time.Now(),
+		UpdatedAt: 	time.Now(),
 	}
 
-	return feedfollow, nil
+	return feedFollow, nil
+}
+
+func (s state) CreateRemoveFeedFollowParams(user database.User, url string) (database.RemoveFeedFollowParams, error) {
+
+	feed, err := s.db.GetFeedByURL(context.Background(), url)
+	if err != nil {
+		return database.RemoveFeedFollowParams{}, err
+	}
+
+	removeFollow := database.RemoveFeedFollowParams{
+		UserID: user.ID,
+		FeedID: feed.ID,
+	}
+
+	return removeFollow, nil
 }
 
 type command struct {
