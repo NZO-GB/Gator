@@ -75,7 +75,7 @@ func (s state) CreateRemoveFeedFollowParams(user database.User, url string) (dat
 	return removeFollow, nil
 }
 
-func (s state) scrapeFeeds() error {
+func scrapeFeeds(s *state) error {
 
 	fmt.Printf("---------\nScraping feeds...\n---------\n")
 

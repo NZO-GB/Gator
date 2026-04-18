@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 	database "github.com/NZO-GB/Gator/internal/database"
 )
 
@@ -86,16 +87,19 @@ func handlerGetUsers(s *state, cmd command) error {
 
 func handlerAgg(s *state, cmd command) error {
 
-	url := cmd.arguments[0]
+	time_between_reqs := cmd.arguments[0]
 
-	_, err := fetchFeed(context.Background(), url)
+	timeBetweenRequests, err := time.ParseDuration(time_between_reqs)
 	if err != nil {
-		return fmt.Errorf("couldn't fetch feed: %w", err)
+		fmt.Println("Error parsing time")
+		return err
 	}
 
-	s.scrapeFeeds()
-	
-	return nil
+	ticker := time.NewTicker(timeBetweenRequests)
+
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
+	}
 }
 
 func handlerAddFeed(s *state, cmd command, user database.User) error {
