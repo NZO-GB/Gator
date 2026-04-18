@@ -1,18 +1,13 @@
 package main
 
 import (
-	"errors"
 	"time"
 	"context"
-	"net/http"
-	"io"
-	"encoding/xml"
+	"fmt"
 	uuid "github.com/google/uuid"
 	database "github.com/NZO-GB/Gator/internal/database"
 	config "github.com/NZO-GB/Gator/internal/config"
 )
-
-var client = http.Client{}
 
 type state struct {
 	cfg			*config.Config
@@ -80,68 +75,30 @@ func (s state) CreateRemoveFeedFollowParams(user database.User, url string) (dat
 	return removeFollow, nil
 }
 
-type command struct {
-	name 		string
-	arguments	[]string
-}
+func (s state) scrapeFeeds() error {
 
-type commands struct {
-	list map[string]func(*state, command) error
-}
+	fmt.Printf("---------\nScraping feeds...\n---------\n")
 
-func (c commands) run(s *state, cmd command) error {
-	if function, ok := c.list[cmd.name]; ok {
-		return function(s, cmd)
+	feedQuery, err := s.db.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		return err
 	}
-	return errors.New("command not supported")
-}
 
-func (c commands) register(name string, f func(*state, command) error) error {
-	if _, exists := c.list[name]; exists {
-		return errors.New("command already exists")
+	url := feedQuery.Url
+
+	s.db.MarkFeedFetched(context.Background(), url)
+
+	feed, err := fetchFeed(context.Background(), url)
+	if err != nil {
+		fmt.Println("Error fetching feed")
+		return err
 	}
+
+	for _, item := range(feed.Channel.Item) {
+		fmt.Println(item.Title)
+	}
+
+	fmt.Printf("---------\nFeeds Scraped Succesfully\n---------\n")
 	
-	c.list[name] = f
-
 	return nil
-}
-
-type RSSFeed struct {
-	Channel struct {
-		Title       string    `xml:"title"`
-		Link        string    `xml:"link"`
-		Description string    `xml:"description"`
-		Item        []RSSItem `xml:"item"`
-	} `xml:"channel"`
-}
-
-type RSSItem struct {
-	Title       string `xml:"title"`
-	Link        string `xml:"link"`
-	Description string `xml:"description"`
-	PubDate     string `xml:"pubDate"`
-}
-
-func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
-	req, err := http.NewRequestWithContext(context.Background(), "GET", feedURL, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("User-Agent", "gator")
-
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := io.ReadAll(res.Body)
-
-	var xmlStruct RSSFeed
-
-	if err := xml.Unmarshal(data, &xmlStruct); err != nil {
-		return nil, err
-	}
-
-	return &xmlStruct, err
 }

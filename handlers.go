@@ -4,21 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"html"
 	database "github.com/NZO-GB/Gator/internal/database"
 )
-
-func middlewareLoggedIn(
-	handler func(s *state, cmd command, user database.User) error) func(*state, command) error {
-		return func(s *state, cmd command) error {
-			username := s.cfg.CurrentUserName
-			user, err := s.db.GetUser(context.Background(), username)
-			if err != nil {
-				return err
-			}
-			return handler(s, cmd, user)
-		}
-	}
 
 func handlerLogin(s *state, cmd command) error {
 	if len(cmd.arguments) == 0 {
@@ -97,19 +84,16 @@ func handlerGetUsers(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFeed(s *state, cmd command) error {
-	pointer, err := fetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
-	
+func handlerAgg(s *state, cmd command) error {
+
+	url := cmd.arguments[0]
+
+	_, err := fetchFeed(context.Background(), url)
 	if err != nil {
-		return err
+		return fmt.Errorf("couldn't fetch feed: %w", err)
 	}
 
-	for i := range(pointer.Channel.Item) {
-		pointer.Channel.Item[i].Title = html.UnescapeString(pointer.Channel.Item[i].Title)
-		pointer.Channel.Item[i].Description = html.UnescapeString(pointer.Channel.Item[i].Description)
-	}
-
-	fmt.Println(pointer)
+	s.scrapeFeeds()
 	
 	return nil
 }

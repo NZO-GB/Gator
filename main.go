@@ -37,7 +37,7 @@ func registerCommands() commands {
 	must(cmds.register("register", handlerRegister))
 	must(cmds.register("reset", handlerReset))
 	must(cmds.register("users", handlerGetUsers))
-	must(cmds.register("agg", handlerFeed))
+	must(cmds.register("agg", handlerAgg))
 	must(cmds.register("addfeed", middlewareLoggedIn(handlerAddFeed)))
 	must(cmds.register("feeds", handlerFeeds))
 	must(cmds.register("follow", middlewareLoggedIn(handlerFollow)))
