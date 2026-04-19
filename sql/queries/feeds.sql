@@ -25,7 +25,7 @@ FROM feeds;
 -- name: MarkFeedFetched :exec
 
 UPDATE feeds
-SET last_fetched_at = NOW(), last_updated = NOW()
+SET last_fetched_at = NOW(), updated_at = NOW()
 WHERE url = $1;
 
 -- name: GetNextFeedToFetch :one

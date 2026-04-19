@@ -2,7 +2,10 @@ package main
 
 import(
 	"context"
+	"time"
+	"fmt"
 	database "github.com/NZO-GB/Gator/internal/database"
+	uuid "github.com/google/uuid"
 )
 
 func middlewareLoggedIn(
@@ -17,3 +20,21 @@ func middlewareLoggedIn(
 		}
 	}
 
+
+func createPostHelper(s *state, item RSSItem, feedID uuid.UUID) error {
+
+	const layout = time.RFC1123Z
+
+	pubDate, err := time.Parse(layout, item.PubDate)
+	if err != nil {
+		fmt.Println("Error parsing published time")
+		return err
+	}
+
+	postParams, err := s.CreateCreatePostParams(item.Title, item.Link, item.Description, pubDate, feedID)
+	s.db.CreatePost(context.Background(), postParams)
+
+	fmt.Println(item.Title)
+
+	return nil
+}

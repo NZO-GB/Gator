@@ -14,7 +14,7 @@ type state struct {
 	db			*database.Queries
 }
 
-func (s state) createUserParams(name string) database.CreateUserParams {
+func (s state) CreateUserParams(name string) database.CreateUserParams {
 	userID := uuid.New()
 	now := time.Now()
 
@@ -28,7 +28,7 @@ func (s state) createUserParams(name string) database.CreateUserParams {
 	return user
 }
 
-func (s state) createFeedParams(user database.User, feedname string, url string) (database.CreateFeedParams, error) {
+func (s state) CreateFeedParams(user database.User, feedname string, url string) (database.CreateFeedParams, error) {
 
 	feedParams := database.CreateFeedParams {
 		ID:			uuid.New(),
@@ -75,6 +75,24 @@ func (s state) CreateRemoveFeedFollowParams(user database.User, url string) (dat
 	return removeFollow, nil
 }
 
+func (s state) CreateCreatePostParams(
+	title string, url string, description string, publishedAt time.Time, feedID uuid.UUID) (database.CreatePostParams, error) {
+
+	postParams := database.CreatePostParams{
+	ID:          uuid.New(),
+	CreatedAt:   time.Now(),
+	UpdatedAt:   time.Now(),
+	Title:       title,
+	Url:         url,
+	Description: description,
+	PublishedAt: publishedAt,
+	FeedID:      feedID,
+	}
+
+	return postParams, nil
+
+}
+
 func scrapeFeeds(s *state) error {
 
 	fmt.Printf("---------\nScraping feeds...\n---------\n")
@@ -86,16 +104,27 @@ func scrapeFeeds(s *state) error {
 
 	url := feedQuery.Url
 
-	s.db.MarkFeedFetched(context.Background(), url)
+	err = s.db.MarkFeedFetched(context.Background(), url)
+	if err != nil {
+		return err
+	}
 
-	feed, err := fetchFeed(context.Background(), url)
+	RSSfeed, err := fetchFeed(context.Background(), url)
 	if err != nil {
 		fmt.Println("Error fetching feed")
 		return err
 	}
 
-	for _, item := range(feed.Channel.Item) {
-		fmt.Println(item.Title)
+	feed, err := s.db.GetFeedByURL(context.Background(), url)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range(RSSfeed.Channel.Item) {
+		err := createPostHelper(s, item, feed.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	fmt.Printf("---------\nFeeds Scraped Succesfully\n---------\n")

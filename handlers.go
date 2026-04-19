@@ -42,7 +42,7 @@ func handlerRegister(s *state, cmd command) error {
 	}
 
 	username := cmd.arguments[0]
-	userParams := s.createUserParams(username)
+	userParams := s.CreateUserParams(username)
 
 	user, err := s.db.CreateUser(context.Background(), userParams)
 
@@ -98,7 +98,11 @@ func handlerAgg(s *state, cmd command) error {
 	ticker := time.NewTicker(timeBetweenRequests)
 
 	for ; ; <-ticker.C {
-		scrapeFeeds(s)
+		err := scrapeFeeds(s)
+		if err != nil {
+			fmt.Println("Error scraping feeds")
+			return err
+		}
 	}
 }
 
@@ -110,7 +114,7 @@ func handlerAddFeed(s *state, cmd command, user database.User) error {
 	feedname := cmd.arguments[0]
 	url := cmd.arguments[1]
 
-	feedParams, err := s.createFeedParams(user, feedname, url)
+	feedParams, err := s.CreateFeedParams(user, feedname, url)
 	if err != nil {
 		fmt.Println("Error creating params")
 		return err
