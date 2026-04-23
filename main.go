@@ -9,12 +9,24 @@ import (
 	config	"github.com/NZO-GB/Gator/internal/config"
 )
 
-const dbURL = "postgres://postgres:postgres@localhost:5432/gator"
-
 func newState() (*state, error) {
+
 	cfg, err := config.Read()
 	if err != nil {
 		return nil, err
+	}
+
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatal(`DB_URL is not set.
+
+		Expected format:
+		postgres://USER:PASSWORD@HOST:PORT/DBNAME?sslmode=disable
+
+		Example:
+		export DB_URL=postgres://postgres:postgres@localhost:5432/gator?sslmode=disable
+
+		Make sure PostgreSQL is running and the database exists.`)
 	}
 
 	db, err := sql.Open("postgres", dbURL)
